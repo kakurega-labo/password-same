@@ -70,6 +70,9 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .status .clk{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .island{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:24px;max-width:calc(100% - 136px);border-radius:12px;background:var(--ink);color:#fff;
   font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;padding:0 10px;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+.status::after{content:"";position:absolute;inset:0;background:rgba(20,24,36,.5);opacity:0;transition:opacity .35s;pointer-events:none;z-index:1}
+.status.dim::after{opacity:1}
+.island{z-index:2}
 .island .lb{opacity:.7;font-weight:500}
 .island.red{background:var(--danger);font-size:11.5px}
 .island.blink{animation:blink .5s steps(2) infinite}
@@ -177,6 +180,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .banner{pointer-events:auto;display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.97);border-radius:18px;padding:10px 12px;
   box-shadow:0 6px 22px rgba(20,25,45,.22);border:0;text-align:left;width:100%;animation:drop .35s cubic-bezier(.2,1.2,.4,1)}
 @keyframes drop{from{transform:translateY(-120%);opacity:0}}
+.banner{touch-action:none}
 .banner.out{animation:up .3s forwards}
 @keyframes up{to{transform:translateY(-120%);opacity:0}}
 .banner .ico{width:34px;height:34px;font-size:15px;border-radius:9px;flex:0 0 auto;box-shadow:none}
@@ -284,6 +288,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .sndbtn{position:absolute;top:10px;right:12px;z-index:6;border:0;border-radius:999px;background:#fff;color:var(--ink);font-size:12px;font-weight:700;padding:7px 12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .share{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.share .x{order:1}.share .img{order:2}
 .share .btn{font-size:14px;padding:12px 10px;text-decoration:none;text-align:center;display:block}
 .btn.x{background:#14171F;color:#fff}
 .btn.img{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
@@ -453,7 +458,7 @@ function renderSlots(opts={}){
 
 /* ---------- タイトル ---------- */
 function toTitle(){
-  stopLoop();G=null;tickClock();$('#head').hidden=true;island(null);
+  stopLoop();G=null;tickClock();$('.status').classList.remove('dim');$('#head').hidden=true;island(null);
   view.innerHTML=`<div class="wall"></div><div class="title">
     <h1><small>スマホのパスワードゲーム</small>パスワード、<br>同じでいっか。</h1>
     <div class="rules">
@@ -708,9 +713,20 @@ function loop(now){
 function banner(html,cls,onTap,life=3600){
   const box=$('#banners');if(!box)return;
   const b=document.createElement('button');b.type='button';b.className='banner '+(cls||'');b.innerHTML=html;
-  b.onclick=()=>{if(onTap)onTap();dismiss()};
-  const dismiss=()=>{b.classList.add('out');setTimeout(()=>b.remove(),300)};
-  box.prepend(b);setTimeout(dismiss,life);
+  let gone=false,y0=null,dy=0,moved=false;
+  const dismiss=(swipe)=>{if(gone)return;gone=true;
+    if(swipe){b.style.transition='transform .22s ease-in,opacity .22s ease-in';b.style.transform='translateY(-140%)';b.style.opacity='0';setTimeout(()=>b.remove(),230)}
+    else{b.classList.add('out');setTimeout(()=>b.remove(),300)}};
+  /* 上にスワイプすると引っこむ。動かさずに離したらタップ */
+  b.addEventListener('pointerdown',e=>{y0=e.clientY;dy=0;moved=false;b.style.transition='none';try{b.setPointerCapture(e.pointerId)}catch(_){}});
+  b.addEventListener('pointermove',e=>{if(y0===null)return;dy=e.clientY-y0;if(Math.abs(dy)>6)moved=true;
+    b.style.transform=`translateY(${dy<0?dy:dy*.25}px)`;b.style.opacity=dy<0?String(Math.max(.3,1+dy/120)):'1'});
+  const up=()=>{if(y0===null)return;y0=null;
+    if(dy<-28){dismiss(true);return}
+    b.style.transition='transform .2s ease-out,opacity .2s';b.style.transform='';b.style.opacity='';};
+  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);
+  b.onclick=e=>{if(moved){e.preventDefault();moved=false;return}if(onTap)onTap();dismiss(false)};
+  box.prepend(b);setTimeout(()=>dismiss(false),life);
   while(box.children.length>3)box.lastChild.remove();
 }
 function attack(a){
@@ -798,7 +814,7 @@ function finishP2(early){
 function judge(){
   const me=G;const home=view.querySelector('.home');if(!home)return showResult();
   island('一斉ログイン','red');
-  const dim=document.createElement('div');dim.className='judge-dim';home.appendChild(dim);
+  const dim=document.createElement('div');dim.className='judge-dim';home.appendChild(dim);$('.status').classList.add('dim');
   const panel=document.createElement('div');panel.className='judge-panel';
   panel.innerHTML=`<div class="jt">一斉ログイン</div><div class="js">漏れたパスワード <span class="code">${pwOf(G.leak).code}</span> で、全部のアプリを試している…</div><div class="jc" id="jc"></div>`;
   home.appendChild(panel);
@@ -849,6 +865,7 @@ function judge(){
 
 /* ---------- 結果 ---------- */
 function showResult(){
+  $('.status').classList.remove('dim');
   G.phase='result';$('#head').hidden=true;island(null);
   const inst=G.apps.filter(a=>a.installed);
   const hij=inst.filter(a=>a.hijacked);
