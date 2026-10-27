@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>パスワード、同じでいっか。</title>
+<meta name="description" content="アプリを入れるたびに、パスワードを決める。覚えられるのは4つまで。数日後、どこかのアプリから流出のお知らせ。同じパスワードのアプリが、一斉に狙われる。">
+<meta name="theme-color" content="#F1F3F8">
+<meta property="og:type" content="website">
+<meta property="og:title" content="パスワード、同じでいっか。">
+<meta property="og:description" content="アプリを入れるたびに、パスワードを決める。覚えられるのは4つまで。数日後、どこかのアプリから流出のお知らせ。同じパスワードのアプリが、一斉に狙われる。">
+<meta property="og:url" content="https://password-same.pages.dev/">
+<meta property="og:image" content="https://password-same.pages.dev/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="パスワード、同じでいっか。">
+<meta name="twitter:description" content="アプリを入れるたびに、パスワードを決める。覚えられるのは4つまで。数日後、どこかのアプリから流出のお知らせ。同じパスワードのアプリが、一斉に狙われる。">
+<meta name="twitter:image" content="https://password-same.pages.dev/ogp.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500;700;900&family=M+PLUS+1+Code:wght@500;700&display=swap">
+<style>
+/* 机の上に置いたスマホ1台。画面の一番下のドックが「あたまの中」（覚えているパスワード）。画面は1色、グラデーションなし。単一テーマ */
+:root{
+  --desk:#D9DCE6;      /* 机 */
+  --desk-ink:#3A4157;
+  --bezel:#15171D;
+  --screen:#F1F3F8;    /* スマホの地（ステータスバーも同じ色） */
+  --mail:#3B6FE0;
+  --ink:#1B1F2A;
+  --sub:#69718A;
+  --line:#E2E5EE;
+  --sheet:#FFFFFF;
+  --accent:#2F5BEA;    /* スマホの青（操作） */
+  --danger:#E23B3B;
+  --ok:#1F9D63;
+  --warn:#F2A20C;
+  --f-ui:"M PLUS 1","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-code:"M PLUS 1 Code","M PLUS 1",ui-monospace,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{height:100%}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{height:100%;margin:0;background:var(--desk);color:var(--ink);font-family:var(--f-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.stage{height:100%;display:flex;flex-direction:column;align-items:center;padding-block:10px}
+.phone{position:relative;flex:1 1 auto;min-height:0;width:min(100%,400px);max-height:860px;
+  background:var(--bezel);border-radius:40px;padding:9px;box-shadow:0 18px 40px rgba(30,35,60,.28)}
+.screen{position:relative;width:100%;height:100%;border-radius:32px;overflow:hidden;background:var(--screen);
+  display:flex;flex-direction:column}
+/* スマホで遊ぶときは、枠なしで画面いっぱい */
+@media (max-width:500px){
+  body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);background:var(--screen)}
+  .stage{padding-block:0}
+  .phone{width:100%;max-height:none;border-radius:0;padding:0;background:var(--screen);box-shadow:none}
+  .screen{border-radius:0}
+}
+.status{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding:7px 16px;min-height:38px;
+  font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;position:relative;z-index:5;background:var(--screen)}
+.status .clk{border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.island{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:24px;max-width:calc(100% - 136px);border-radius:12px;background:var(--ink);color:#fff;
+  font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;padding:0 10px;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+.island .lb{opacity:.7;font-weight:500}
+.island.red{background:var(--danger);font-size:11.5px}
+.island.blink{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{background:#9E1F1F}}
+.island .tb{position:absolute;left:0;bottom:0;height:3px;background:rgba(255,255,255,.75)}
+.status .bat{display:inline-block;width:22px;height:11px;border:1.5px solid currentColor;border-radius:3px;position:relative;vertical-align:-1px;margin-left:6px}
+.status .bat::after{content:"";position:absolute;inset:1.5px;right:5px;background:currentColor;border-radius:1px}
+.view{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+
+/* 地（1色） */
+.wall{position:absolute;inset:0;background:var(--screen)}
+
+/* タイトル */
+.title{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:28px;gap:18px}
+.title h1{margin:0;font-weight:900;font-size:clamp(30px,9vw,40px);line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
+.title h1 small{display:block;font-size:.42em;font-weight:700;color:var(--sub);letter-spacing:.04em;margin-bottom:8px}
+.title p{margin:0;font-size:14px;line-height:1.75;color:#3a4157}
+.rules{display:grid;gap:8px;font-size:13px;line-height:1.6}
+.rules div{display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:start;background:#fff;border-radius:14px;padding:10px 12px}
+.rules b{font-size:12px;color:var(--accent);padding-top:1px}
+.btn{border:0;border-radius:14px;padding:14px 18px;font-size:16px;font-weight:700;background:var(--accent);color:#fff}
+.btn.ghost{background:#DCE1EC;color:var(--ink)}
+.btn.danger{background:var(--danger)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* ホーム */
+.home{position:absolute;inset:0;display:flex;flex-direction:column}
+.hud{position:relative;z-index:3;margin:4px 14px 0;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:#fff;border-radius:14px;padding:8px 12px;font-size:12px;font-weight:700;overflow:hidden}
+.hud .ph{color:var(--accent)}
+.hud .num{font-variant-numeric:tabular-nums}
+.timerbar{position:absolute;left:0;bottom:0;height:3px;background:var(--danger);border-radius:0 3px 3px 0}
+.grid{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 2px;padding:18px 8px}
+.app{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.ico{width:56px;height:56px;border-radius:15px;display:grid;place-items:center;color:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);position:relative;flex:0 0 auto}
+.ico svg{width:60%;height:60%;display:block;overflow:visible}
+.app{min-width:0}
+.app .nm{font-size:9.5px;font-weight:700;line-height:1.2;text-align:center;max-width:100%;color:var(--ink);white-space:nowrap;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis}
+.app.pop .ico{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.2)}100%{transform:scale(1)}}
+.badge{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;
+  font-size:12px;font-weight:900;color:#fff;border:2px solid var(--screen)}
+.badge.ok{background:var(--ok)}.badge.lk{background:#5B6275}.badge.unk{background:var(--warn)}
+.badge svg{width:12px;height:12px}.badge.bad{background:var(--danger)}.badge.leak{background:#555}
+.app.hijacked .ico{filter:grayscale(.85) brightness(.8)}
+.app.hijacked .ico::after{content:"";position:absolute;inset:0;border-radius:15px;background:repeating-linear-gradient(135deg,rgba(226,59,59,.35) 0 6px,transparent 6px 12px)}
+.keydot{position:absolute;left:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;border:2px solid var(--screen)}
+.app.busy .ico{animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(.92)}}
+
+/* 下から出るシート */
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:20;background:var(--sheet);border-radius:24px;padding:16px 16px 14px;
+  box-shadow:0 -6px 30px rgba(20,25,45,.18);display:flex;flex-direction:column;gap:10px;
+  transform:translateY(110%);transition:transform .32s cubic-bezier(.2,.9,.3,1);max-height:calc(100% - 16px);overflow:auto}
+.sheet.on{transform:none}
+.sheet.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.sh-head{display:flex;gap:12px;align-items:center}
+.sh-head .ico{width:48px;height:48px;font-size:20px;border-radius:13px;flex:0 0 auto}
+.sh-head .t{min-width:0}
+.sh-head .k{font-size:11px;color:var(--sub);font-weight:700}
+.sh-head .n{font-size:17px;font-weight:900;line-height:1.3}
+.stars{color:var(--warn);font-size:12px;letter-spacing:1px}
+.stars i{font-style:normal;color:#D5D9E3}
+.sh-q{font-size:14px;font-weight:700;line-height:1.6}
+.sh-note{font-size:12px;color:var(--sub);line-height:1.6}
+.sh-msg{font-size:13px;font-weight:700;line-height:1.6;color:var(--danger)}
+.sh-msg.good{color:var(--ok)}
+.sh-msg{margin-top:-10px;max-height:0;opacity:0;overflow:hidden;transition:margin-top .25s ease,max-height .25s ease,opacity .2s ease .05s}
+.sh-msg.show{margin-top:0;max-height:3.4em;opacity:1}
+.choices{display:grid;gap:8px}
+.pwbtn{display:flex;align-items:center;gap:10px;width:100%;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:10px 12px;text-align:left}
+.pwbtn:hover{border-color:#C5CBDA}
+.pwbtn .code{font-family:var(--f-code);font-weight:700;font-size:15px;flex:1;min-width:0;overflow-wrap:anywhere}
+.pwbtn .act{font-size:12px;font-weight:700;color:var(--accent)}
+.pwbtn.new{border-style:dashed;background:#F6F8FF}
+.pwbtn.new .code{font-family:var(--f-ui);font-size:14px}
+.pwbtn.forgot{background:#FFF7F5;border-color:#F4D5CF}
+.pwbtn.forgot .code{font-family:var(--f-ui);font-size:14px;color:#9a3b2d}
+.key{flex:0 0 auto;width:26px;height:14px}
+
+/* あたまの中 */
+.head{flex:0 0 auto;position:relative;z-index:22;background:#fff;border-top:1px solid var(--line);padding:6px 10px 12px}
+.head-t{display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;font-weight:900;color:var(--desk-ink);padding:0 4px 5px;letter-spacing:.06em}
+.head-t span:last-child{font-weight:700;letter-spacing:0;color:var(--sub)}
+.slots{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:6px}
+.slot{min-height:46px;border-radius:12px;background:var(--screen);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 2px;position:relative}
+.slot.empty{background:transparent;border-style:dashed;color:#A0A7BC;font-size:11px}
+.slot .code{font-family:var(--f-code);font-size:var(--cs,11px);font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .apps{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.slot .apps i{width:9px;height:9px;border-radius:3px;display:block}
+.slot.leaked{border-color:var(--danger);background:#FFF1F0}
+.slot.leaked::before{content:"漏れた";position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--danger);color:#fff;font-size:9.5px;line-height:1.5;font-weight:900;padding:0 6px;border-radius:6px;white-space:nowrap;font-family:var(--f-ui)}
+.slot.leaked .key{margin-top:4px}
+.slot.pick{border-color:var(--danger);animation:wig .5s ease-in-out infinite alternate;cursor:pointer}
+@keyframes wig{from{transform:rotate(-1.5deg)}to{transform:rotate(1.5deg)}}
+.slot.fade{animation:fadeout .6s forwards}
+@keyframes fadeout{to{opacity:0;transform:translateY(8px) scale(.8);filter:blur(3px)}}
+.slot.born{animation:born .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes born{from{transform:scale(.3);opacity:0}}
+
+/* 通知 */
+.banners{position:absolute;left:8px;right:8px;top:4px;z-index:30;display:grid;gap:6px;pointer-events:none}
+.banner{pointer-events:auto;display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.97);border-radius:18px;padding:10px 12px;
+  box-shadow:0 6px 22px rgba(20,25,45,.22);border:0;text-align:left;width:100%;animation:drop .35s cubic-bezier(.2,1.2,.4,1)}
+@keyframes drop{from{transform:translateY(-120%);opacity:0}}
+.banner.out{animation:up .3s forwards}
+@keyframes up{to{transform:translateY(-120%);opacity:0}}
+.banner .ico{width:34px;height:34px;font-size:15px;border-radius:9px;flex:0 0 auto;box-shadow:none}
+.banner .bt{min-width:0;font-size:12px;line-height:1.5}
+.banner .bt b{display:block;font-size:12.5px}
+.banner .bt{flex:1}
+.banner .bt .bh{display:flex;justify-content:space-between;gap:8px;color:var(--sub);font-size:10.5px;font-weight:700}
+.banner.red{box-shadow:0 0 0 2px var(--danger),0 6px 22px rgba(226,59,59,.3)}
+.banner.green{box-shadow:0 0 0 2px var(--ok),0 6px 22px rgba(31,157,99,.25)}
+
+/* アプリの中・メール・偽ページ */
+.full{position:absolute;inset:0;z-index:25;background:var(--screen);display:flex;flex-direction:column;animation:zoom .25s ease-out}
+@keyframes zoom{from{transform:scale(.92);opacity:0}}
+.full .bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+.full .bar .ico{width:32px;height:32px;font-size:14px;border-radius:9px;box-shadow:none}
+.full .bar b{font-size:15px;flex:1}
+.full .bar button{border:0;background:none;font-size:14px;font-weight:700;color:var(--accent);padding:6px}
+.full .body{flex:1;overflow:auto;padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+.steps{display:grid;gap:8px}
+.step{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:700;color:#A0A7BC}
+.step i{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;flex:0 0 auto;display:grid;place-items:center;font-style:normal;font-size:11px}
+.step.now{color:var(--accent)}.step.done{color:var(--ok)}
+.step.done i{background:var(--ok);border-color:var(--ok);color:#fff}
+.prog{height:8px;border-radius:4px;background:#E7EAF2;overflow:hidden}
+.prog div{height:100%;width:0;background:var(--accent)}
+.rush{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:700;color:var(--danger)}
+.rush b{font-size:16px;font-variant-numeric:tabular-nums}
+.rushbar{height:8px;border-radius:4px;background:#F6DCDC;overflow:hidden}
+.rushbar div{height:100%;width:100%;background:var(--danger)}
+.mail{background:#fff;border-radius:16px;padding:16px;font-size:13px;line-height:1.8;border:1px solid var(--line)}
+.mail .from{font-size:11px;color:var(--sub);font-weight:700}
+.mail h3{margin:4px 0 10px;font-size:15px;line-height:1.5}
+.lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:40px 14px 20px;gap:10px}
+.lock .clock{font-size:64px;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.lock .date{font-size:14px;font-weight:700;color:#3a4157}
+.lock .later{position:absolute;inset:0;display:grid;place-items:center;font-size:20px;font-weight:900;background:var(--screen);animation:fadeaway 1.6s .9s forwards;z-index:4}
+@keyframes fadeaway{to{opacity:0;visibility:hidden}}
+.fake .urlbar{margin:8px 12px;background:#EEF1F6;border-radius:10px;padding:8px 12px;font-family:var(--f-code);font-size:12px;color:#6a7187}
+.fake .warn{background:#FFF1F0;border:2px solid var(--danger);border-radius:16px;padding:14px;font-size:13px;line-height:1.7}
+.fake .warn b{color:var(--danger);font-size:15px;display:block;margin-bottom:4px}
+
+/* 結果 */
+.result{position:absolute;inset:0;overflow:auto;padding:16px 14px 20px;display:flex;flex-direction:column;gap:12px;background:var(--screen)}
+.res-top{background:#fff;border-radius:20px;padding:16px;display:grid;gap:6px}
+.res-top .lbl{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.06em}
+.res-top .ttl{font-size:24px;font-weight:900;line-height:1.3;text-wrap:balance}
+.res-top .big{font-size:15px;font-weight:700}
+.res-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.res-stats div{background:#fff;border-radius:14px;padding:10px 8px;text-align:center}
+.res-stats b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.res-stats span{font-size:10.5px;color:var(--sub);font-weight:700}
+.grp{background:#fff;border-radius:18px;padding:12px}
+.grp-h{display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.grp-h .code{font-family:var(--f-code);font-weight:700;font-size:14px}
+.grp-h .tag{margin-left:auto;font-size:11px;font-weight:700;color:var(--sub);white-space:nowrap}
+.grp-h .tag.bad{color:var(--danger)}
+.row{display:flex;align-items:center;gap:10px;padding:5px 0}
+.row .ico{width:30px;height:30px;font-size:13px;border-radius:8px;box-shadow:none}
+.row .nm{flex:1;font-size:13px;font-weight:700;min-width:0}
+.row .st{font-size:11.5px;font-weight:900;padding:3px 8px;border-radius:8px;background:#EEF1F6;color:var(--sub)}
+.row .st.ok{background:#E3F5EC;color:var(--ok)}
+.row .st.bad{background:#FDE7E7;color:var(--danger)}
+.row .st.leak{background:#33363F;color:#fff}
+.row .st.dead{background:#FFF1D6;color:#9A6200}
+.res-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lesson{font-size:12px;line-height:1.7;color:#3a4157;background:#fff;border-radius:16px;padding:12px 14px}
+
+.judge-dim{position:absolute;inset:0;z-index:1;background:rgba(20,24,36,.5);animation:fadein .35s}
+@keyframes fadein{from{opacity:0}}
+.app.testing .ico{box-shadow:0 0 0 3px #fff,0 4px 14px rgba(0,0,0,.3)}
+.stamp{position:absolute;left:50%;top:28px;transform:translate(-50%,-50%) rotate(-8deg);font-size:11px;font-weight:900;padding:2px 6px;border-radius:6px;border:2px solid;background:#fff;white-space:nowrap;animation:stampin .22s cubic-bezier(.2,1.6,.4,1);z-index:2}
+@keyframes stampin{from{transform:translate(-50%,-50%) rotate(-8deg) scale(2);opacity:0}}
+.stamp.bad{color:var(--danger);border-color:var(--danger)}
+.stamp.ok{color:var(--ok);border-color:var(--ok)}
+.stamp.miss{color:#8A90A2;border-color:#C5CAD6;font-size:10px;transform:translate(-50%,-50%)}
+.app.missed .ico{opacity:.55}
+.stamp.leak{color:#fff;background:#33363F;border-color:#33363F}
+.flykey{position:absolute;z-index:5;width:34px;height:18px;transition:left .36s cubic-bezier(.5,0,.3,1),top .36s cubic-bezier(.5,0,.3,1);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.flykey .key{width:34px;height:18px}
+.judge-panel{position:absolute;left:12px;right:12px;bottom:12px;z-index:4;background:#fff;border-radius:20px;padding:14px 16px;display:grid;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.25);animation:zoom .3s ease-out}
+.judge-panel .jt{font-size:20px;font-weight:900;color:var(--danger)}
+.judge-panel .js{font-size:12.5px;line-height:1.6;color:var(--sub);font-weight:700}
+.judge-panel .js .code{font-family:var(--f-code);color:var(--ink)}
+.judge-panel .jc{display:grid;gap:10px}
+.judge-panel .jc:empty{display:none}
+.jsum{display:flex;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:900}
+.jsum span{padding:4px 10px;border-radius:9px}
+.jsum .ok{background:#E3F5EC;color:var(--ok)}.jsum .bad{background:#FDE7E7;color:var(--danger)}.jsum .dead{background:#FFF1D6;color:#9A6200}
+/* 小さな知らせ */
+.toast{position:absolute;left:50%;bottom:22px;z-index:40;transform:translateX(-50%);background:rgba(27,31,42,.92);color:#fff;
+  font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;white-space:nowrap;animation:toast 1.6s forwards;pointer-events:none}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,10px)}12%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+.pen{position:absolute;z-index:41;font-weight:900;font-size:18px;color:var(--danger);animation:float 1s forwards;pointer-events:none}
+@keyframes float{to{transform:translateY(-30px);opacity:0}}
+
+/* 調整パネル */
+.tune-btn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:60;width:34px;height:30px;opacity:.75;border-radius:12px;border:0;background:rgba(255,255,255,.8);font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.tune{position:fixed;top:calc(56px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:60;width:min(300px,calc(100% - 20px));background:#fff;border-radius:16px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.2);display:grid;gap:10px;font-size:12px;max-height:80%;overflow:auto}
+.tune h4{margin:0;font-size:13px}
+.tune label{display:grid;gap:4px;font-weight:700}
+.tune select{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--line)}
+.tune p{margin:0;color:var(--sub);line-height:1.5}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* 公開版 */
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.sndbtn{position:absolute;top:10px;right:12px;z-index:6;border:0;border-radius:999px;background:#fff;color:var(--ink);font-size:12px;font-weight:700;padding:7px 12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.share{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.share .btn{font-size:14px;padding:12px 10px;text-decoration:none;text-align:center;display:block}
+.btn.x{background:#14171F;color:#fff}
+.btn.img{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone"><div class="screen" id="screen">
+    <div class="status"><span id="clock">--:--</span><div class="island" id="island" hidden></div><span>5G<span class="bat"></span></span></div>
+    <div class="view" id="view"></div>
+    <div class="head" id="head">
+      <div class="head-t"><span>あたまの中（覚えているパスワード）</span><span id="headCount"></span></div>
+      <div class="slots" id="slots"></div>
+    </div>
+  </div></div>
+</div>
+
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const view=$('#view'), slotsEl=$('#slots'), screen=$('#screen');
+
+/* ---------- 設定 ---------- */
+const CFG={tmode:'hidden',tries:2,mid:.5,login:5,slots:4,map:'late',time:25,change:2.4,phish:2,apps:8,sound:true};
+function readCfg(){}
+/* 音の ON／OFF（この端末に覚えておく） */
+try{if(localStorage.getItem('pwsame_sound')==='0')CFG.sound=false}catch(e){}
+function soundBtn(){
+  const b=document.createElement('button');b.className='sndbtn';b.type='button';
+  const set=()=>{b.textContent=CFG.sound?'音 ON':'音 OFF';b.setAttribute('aria-pressed',CFG.sound)};set();
+  b.onclick=()=>{CFG.sound=!CFG.sound;try{localStorage.setItem('pwsame_sound',CFG.sound?'1':'0')}catch(e){};set();if(CFG.sound){ac();SND.tap()}};
+  view.appendChild(b);
+}
+
+/* ---------- 音 ---------- */
+let AC=null;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return AC}
+function tone(f,d=.12,type='sine',v=.12,delay=0,slide=0){
+  if(!CFG.sound)return;const c=ac();if(!c)return;
+  const t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();
+  o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(c.destination);o.start(t);o.stop(t+d+.02);
+}
+const SND={
+  tap:()=>tone(660,.05,'sine',.06),
+  ok:()=>{tone(880,.1,'sine',.1);tone(1320,.14,'sine',.1,.08)},
+  bad:()=>{tone(180,.22,'square',.07);tone(140,.25,'square',.06,.06)},
+  ping:()=>{tone(1250,.09,'sine',.09);tone(1650,.12,'sine',.08,.09)},
+  alarm:()=>{tone(520,.12,'sawtooth',.06);tone(520,.12,'sawtooth',.06,.18)},
+  forget:()=>tone(700,.4,'triangle',.08,0,220),
+  learn:()=>{tone(523,.08,'triangle',.08);tone(784,.12,'triangle',.08,.07)},
+  done:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,.16,'triangle',.08,i*.08))},
+};
+
+/* ---------- データ ---------- */
+const POOL=[
+  {id:'bank', name:'あるあるバンク', kind:'銀行', star:3, w:1, c:'#1F6F5C', g:'¥', use:'振込みをする', rush:'振込みの締め切りまで', fail:'締め切りに間に合わなかった'},
+  {id:'mart', name:'とおりマート', kind:'通販（カード登録あり）', star:3, w:2, c:'#E0582B', g:'買', use:'買い物の支払いをする', rush:'タイムセール終了まで', fail:'セールが終わってしまった'},
+  {id:'photo',name:'おもいでアルバム', kind:'写真の保管', star:3, w:1, c:'#3D6FD1', g:'写', use:'旅行の写真を見返す', rush:'友だちが横で待っている', fail:'友だちを待たせてしまった'},
+  {id:'sns',  name:'ひとことSNS', kind:'SNS', star:2, w:3, c:'#2A2D36', g:'話', use:'久しぶりに投稿する', rush:'話題が流れる前に', fail:'話題が流れてしまった'},
+  {id:'point',name:'まちポイント', kind:'ポイントカード', star:2, w:3, c:'#E8A800', g:'P', use:'レジでポイントを使う', rush:'レジの後ろに人が並んでいる', fail:'ポイントを使わずに払った'},
+  {id:'food', name:'すぐ来る出前', kind:'出前（カード登録あり）', star:2, w:3, c:'#C2185B', g:'出', use:'晩ごはんを頼む', rush:'注文の受付終了まで', fail:'注文に間に合わなかった'},
+  {id:'video',name:'どうがチャンネル', kind:'動画', star:2, w:3, c:'#7B3FBF', g:'動', use:'続きを見る', rush:'休憩が終わるまで', fail:'休憩が終わってしまった'},
+  {id:'flea', name:'とおりフリマ', kind:'フリマ', star:2, w:3, c:'#00909E', g:'売', use:'売れた品物を発送する', rush:'発送の期限まで', fail:'発送が遅れてしまった'},
+  {id:'coupon',name:'まいにちクーポン', kind:'クーポン', star:1, w:6, c:'#FF7A00', g:'券', use:'お店でクーポンを出す', rush:'レジで店員さんが待っている', fail:'クーポンを使えなかった'},
+  {id:'prize',name:'あたる懸賞', kind:'懸賞', star:1, w:6, c:'#E53935', g:'当', use:'当選を確かめる', rush:'当選の受付締め切りまで', fail:'当選が無効になった'},
+  {id:'puzzle',name:'ぷちパズル', kind:'ゲーム', star:1, w:6, c:'#3E9E45', g:'遊', use:'引き継ぎをする', rush:'引き継ぎの期限まで', fail:'データが消えてしまった'},
+  {id:'fortune',name:'きょうの占い', kind:'占い', star:1, w:6, c:'#8E6CC0', g:'占', use:'今日の運勢を見る', rush:'家を出る前に', fail:'運勢を見ずに家を出た'},
+];
+const VAL={1:10,2:20,3:40};
+/* アイコン（白い線画。24×24） */
+const S='fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+const ICONS={
+  bank:`<svg viewBox="0 0 24 24" ${S}><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 10.5v7M10 10.5v7M14 10.5v7M18.5 10.5v7"/><path d="M3.5 20h17"/></svg>`,
+  mart:`<svg viewBox="0 0 24 24" ${S}><path d="M2.5 4h2.6l2.3 10.4a1.5 1.5 0 0 0 1.5 1.1h7.9a1.5 1.5 0 0 0 1.4-1.1L20.5 8H6.3"/><circle cx="9.5" cy="19.5" r="1.4" fill="#fff"/><circle cx="17" cy="19.5" r="1.4" fill="#fff"/></svg>`,
+  photo:`<svg viewBox="0 0 24 24" ${S}><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.6" fill="#fff"/><path d="m4 18 5.5-5.5 4 4 2.5-2.5 4.5 4.5"/></svg>`,
+  sns:`<svg viewBox="0 0 24 24" ${S}><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5z"/><path d="M8 9h8M8 12h5"/></svg>`,
+  point:`<svg viewBox="0 0 24 24" ${S}><circle cx="12" cy="12" r="8.5"/><path d="M10 16.5v-9h2.8a2.6 2.6 0 0 1 0 5.2H10"/></svg>`,
+  food:`<svg viewBox="0 0 24 24" ${S}><path d="M3 12h18a9 8 0 0 1-18 0z"/><path d="M8 8.5c0-1.2 1.2-1.3 1.2-2.5M12 8.5c0-1.2 1.2-1.3 1.2-2.5M16 8.5c0-1.2 1.2-1.3 1.2-2.5"/></svg>`,
+  video:`<svg viewBox="0 0 24 24" ${S}><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9v6l5-3z" fill="#fff"/></svg>`,
+  flea:`<svg viewBox="0 0 24 24" ${S}><path d="M3.5 12V4.5a1 1 0 0 1 1-1H12l8.5 8.5-8.5 8.5z"/><circle cx="8" cy="8" r="1.6" fill="#fff"/></svg>`,
+  coupon:`<svg viewBox="0 0 24 24" ${S}><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M14.5 7.5v1.5M14.5 11.25v1.5M14.5 15v1.5"/></svg>`,
+  prize:`<svg viewBox="0 0 24 24" ${S}><rect x="3.5" y="9" width="17" height="4" rx="1"/><path d="M5.5 13v7h13v-7M12 9v11"/><path d="M12 9C10 5 6.5 5 6.5 7.3S12 9 12 9c2-4 5.5-4 5.5-1.7S12 9 12 9"/></svg>`,
+  puzzle:`<svg viewBox="0 0 24 24" ${S}><path d="M4.5 7H8.3a2 2 0 1 1 3.6 0H16.5v3.8a2 2 0 1 1 0 3.6V19H11.9a2 2 0 1 0-3.6 0H4.5v-4.6a2 2 0 1 0 0-3.6z" transform="translate(12 12) scale(1.22) translate(-11 -12.2)" stroke-width="1.7"/></svg>`,
+  fortune:`<svg viewBox="0 0 24 24" ${S}><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.3 6.3 0 0 0 10 10z"/><path d="m17 3.5.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" fill="#fff" stroke-width="1"/></svg>`,
+  mail:`<svg viewBox="0 0 24 24" ${S}><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m3.8 7 8.2 6 8.2-6"/></svg>`,
+};
+const KEYC=['#E4572E','#2E86AB','#E8B730','#4CB944','#8E5CC4','#D3457F','#3BA59B','#8B6B3E'];
+/* パスワード：英字・数字・記号を必ず含む 8〜10字。見間違えやすい l I O 0 1 は使わない */
+const PW_LO='abcdefghijkmnpqrstuvwxyz',PW_UP='ABCDEFGHJKLMNPQRSTUVWXYZ',PW_NUM='23456789',PW_SYM='!#$%&?@+';
+
+/* ---------- 状態 ---------- */
+let G=null;
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function wpick(list,wf){const tot=list.reduce((s,x)=>s+wf(x),0);let r=Math.random()*tot;for(const x of list){r-=wf(x);if(r<=0)return x}return list[list.length-1]}
+
+function newGame(){
+  readCfg();
+  const s3=shuffle(POOL.filter(p=>p.star===3&&p.id!=='bank'));
+  const s2=shuffle(POOL.filter(p=>p.star===2)), s1=shuffle(POOL.filter(p=>p.star===1));
+  const n=CFG.apps; const pick=[POOL[0], s3[0]];
+  const n1=Math.ceil((n-2)/2), n2=n-2-n1;
+  pick.push(...s2.slice(0,n2), ...s1.slice(0,n1));
+  if(n>=10) pick.push(s3[1]);
+  const apps=shuffle(pick.slice(0,n)).map(p=>({...p,pw:null,installed:false,changed:false,hijacked:false,leaked:false,unknown:false,locked:false}));
+  // 出来事の並び：登録とログインを交ぜる
+  const ev=[];let reg=0,logins=0;
+  apps.forEach((a,i)=>{ev.push({t:'reg',app:a}); reg++;
+    if(reg>=3 && (reg%2===1 || i===apps.length-1)) {ev.push({t:'login'});logins++}
+  });
+  ev.push({t:'login'});
+  G={apps,ev,ei:0,pws:[],score:0,miss:0,resets:0,locks:0,tasks:0,taskOk:0,phase:'p1',lastLogin:null,off:0};
+}
+const remembered=()=>G.pws.filter(p=>!p.forgotten);
+function makePw(){
+  let code;
+  do{
+    const len=8+Math.floor(Math.random()*3);
+    const ch=[rnd(PW_LO),rnd(PW_UP),rnd(PW_NUM),rnd(PW_SYM)];
+    const all=PW_LO+PW_LO+PW_UP+PW_NUM+PW_SYM;
+    while(ch.length<len)ch.push(rnd(all));
+    code=shuffle(ch).join('');
+  }while(G.pws.some(p=>p.code===code));
+  const p={id:'k'+G.pws.length,code,color:KEYC[G.pws.length%KEYC.length],forgotten:false};
+  G.pws.push(p);return p;
+}
+const pwOf=a=>G.pws.find(p=>p.id===a.pw);
+const unusable=a=>!a.leaked&&!a.changed&&(a.locked||a.unknown||pwOf(a).forgotten);
+const showMap=()=>CFG.map==='always';
+const showLeakTag=()=>CFG.map==='always'||(CFG.map==='late'&&G&&G.phase==='p2'||CFG.map==='late'&&G&&G.phase==='result');
+
+/* ---------- 描画の部品 ---------- */
+const keySvg=c=>`<svg class="key" viewBox="0 0 26 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="${c}"/><circle cx="7" cy="7" r="2" fill="#fff"/><rect x="11" y="5.5" width="14" height="3" rx="1" fill="${c}"/><rect x="19" y="8" width="2.5" height="4" fill="${c}"/><rect x="23" y="8" width="2" height="3" fill="${c}"/></svg>`;
+const ico=a=>`<div class="ico" style="background:${a.c}">${ICONS[a.id]}</div>`;
+const LOCK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2" fill="#fff"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const mailIco=()=>`<div class="ico" style="background:var(--mail)">${ICONS.mail}</div>`;
+const stars=n=>`<span class="stars" aria-label="大事さ${n}">${'★'.repeat(n)}<i>${'★'.repeat(3-n)}</i></span>`;
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;view.appendChild(d);setTimeout(()=>d.remove(),1700)}
+function penalty(t,el){const d=document.createElement('div');d.className='pen';d.textContent=t;
+  const r=(el||screen).getBoundingClientRect(),s=screen.getBoundingClientRect();
+  d.style.left=(r.left-s.left+r.width/2-16)+'px';d.style.top=(r.top-s.top+10)+'px';screen.appendChild(d);setTimeout(()=>d.remove(),1000)}
+
+function renderSlots(opts={}){
+  const n=CFG.slots;slotsEl.style.setProperty('--n',n);slotsEl.style.setProperty('--cs',({3:'12px',4:'10.5px',5:'9.5px'})[n]);
+  const rem=G?remembered():[];
+  $('#headCount').textContent=G?`${rem.length} / ${n}`:`0 / ${n}`;
+  let h='';
+  for(let i=0;i<n;i++){
+    const p=rem[i];
+    if(!p){h+=`<div class="slot empty">空き</div>`;continue}
+    const apps=G.apps.filter(a=>a.installed&&a.pw===p.id);
+    const lk=showLeakTag()&&G.leak&&G.phase!=='leak'&&G.leak.pw===p.id;
+    h+=`<div class="slot ${opts.pick?'pick':''} ${opts.born===p.id?'born':''} ${lk?'leaked':''}" data-id="${p.id}" ${opts.pick?'role="button" tabindex="0"':''}>
+      ${keySvg(p.color)}<span class="code">${p.code}</span>
+      ${showMap()?`<span class="apps">${apps.map(a=>`<i style="background:${a.c}" title="${a.name}"></i>`).join('')}</span>`:''}</div>`;
+  }
+  slotsEl.innerHTML=h;
+  if(opts.pick) slotsEl.querySelectorAll('.slot[data-id]').forEach(el=>{
+    const go=()=>opts.pick(el.dataset.id,el);
+    el.onclick=go;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')go()};
+  });
+}
+
+/* ---------- タイトル ---------- */
+function toTitle(){
+  stopLoop();G=null;tickClock();$('#head').hidden=true;island(null);
+  view.innerHTML=`<div class="wall"></div><div class="title">
+    <h1><small>スマホのパスワードゲーム</small>パスワード、<br>同じでいっか。</h1>
+    <div class="rules">
+      <div><b>ふだん</b><span>アプリを入れるたびに、パスワードを決める。覚えられるのは <strong>${CFG.slots}つ</strong> まで。ログインに失敗したアプリは、あとでパスワードを変えるのに時間がかかる。</span></div>
+      <div><b>数日後</b><span>どこかのアプリから、パスワードが漏れる。同じパスワードのアプリが狙われる。使えなくなったアプリも直しながら、間に合ううちに変えよう。</span></div>
+    </div>
+    <button class="btn" id="start" type="button">スタート</button>
+  </div>`;
+  renderSlots();
+  soundBtn();
+  $('#start').onclick=()=>{ac();SND.tap();newGame();startP1()};
+}
+
+/* ---------- 前半 ---------- */
+function homeHTML(){
+  return `<div class="wall"></div><div class="home"><div class="grid" id="grid"></div></div><div class="banners" id="banners"></div>`;
+}
+function island(html,cls){const el=$('#island');if(!html){el.hidden=true;return}el.hidden=false;el.className='island '+(cls||'');el.innerHTML=html}
+function renderGrid(popId){
+  const g=$('#grid');if(!g)return;
+  g.innerHTML=G.apps.filter(a=>a.installed).map(a=>{
+    const p=pwOf(a);
+    let badge='';
+    if(a.leaked)badge='<span class="badge leak">!</span>';
+    else if(a.hijacked)badge='<span class="badge bad">×</span>';
+    else if(a.changed)badge='<span class="badge ok">✓</span>';
+    else if(a.locked)badge=`<span class="badge lk" title="ロック中">${LOCK}</span>`;
+    else if(a.unknown||(G.phase!=='p1'&&pwOf(a).forgotten))badge='<span class="badge unk" title="パスワードが分からない">?</span>';
+    const dot=showMap()&&p?`<span class="keydot" style="background:${p.color};${p.forgotten?'opacity:.35':''}"></span>`:'';
+    return `<button class="app ${a.id===popId?'pop':''} ${a.hijacked?'hijacked':''} ${G.busy&&G.busy.app===a?'busy':''}" data-id="${a.id}" type="button">
+      <div class="ico" style="background:${a.c}">${ICONS[a.id]}${badge}${dot}</div><span class="nm">${a.name}</span></button>`}).join('');
+  g.querySelectorAll('.app').forEach(b=>b.onclick=()=>onAppTap(G.apps.find(a=>a.id===b.dataset.id),b));
+}
+function hudP1(){
+  const done=G.apps.filter(a=>a.installed).length;
+  island(`<span class="lb">アプリ</span>${done}/${G.apps.length}<span class="lb">｜成功</span>${G.taskOk}<span class="lb">間違い</span>${G.miss}<span class="lb">ロック</span>${G.locks}`);
+}
+function startP1(){
+  $('#head').hidden=false;
+  G.phase='p1';G.off=0;tickClock();
+  view.innerHTML=homeHTML();hudP1();renderGrid();renderSlots();
+  setTimeout(nextEvent,500);
+}
+function refreshHud(){if(G&&G.phase==='p1')hudP1()}
+function onAppTap(a,el){
+  if(G.phase==='p2')return p2Tap(a,el);
+  SND.tap();
+}
+
+let sheet=null;
+function showMsg(el){
+  el.classList.add('show');
+  const sh=el.closest('.sheet');if(!sh)return;
+  const t0=performance.now();const f=()=>{sh.scrollTop=sh.scrollHeight;if(performance.now()-t0<400)requestAnimationFrame(f)};f();
+}
+function openSheet(html){
+  closeSheet(true);
+  sheet=document.createElement('div');sheet.className='sheet';sheet.innerHTML=html;view.appendChild(sheet);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>sheet&&sheet.classList.add('on')));
+  return sheet;
+}
+function closeSheet(now){
+  if(!sheet)return;const s=sheet;sheet=null;
+  if(now){s.remove();return}
+  s.classList.remove('on');setTimeout(()=>s.remove(),350);
+}
+function nextEvent(){
+  if(G.ei>=G.ev.length){closeSheet();renderSlots();setTimeout(toLeak,700);return}
+  const e=G.ev[G.ei++];
+  if(e.t==='reg') showRegister(e.app,false);
+  else {
+    const cand=G.apps.filter(a=>a.installed&&!a.locked&&!a.unknown&&a!==G.lastLogin&&a!==G.lastReg);
+    if(!cand.length) return nextEvent();
+    const a=wpick(cand,x=>pwOf(x).forgotten?2.2:1);
+    G.lastLogin=a;showLogin(a);
+  }
+}
+
+function showRegister(a,isReset){
+  const rem=remembered();
+  const s=openSheet(`
+    <div class="sh-head">${ico(a)}<div class="t"><div class="k">${isReset?'パスワードの再設定':'新しいアプリ'}　${a.kind}</div><div class="n">${a.name}</div>${stars(a.star)}</div></div>
+    <div class="sh-q">${isReset?'新しいパスワードを決めよう。':'パスワードはどうする？'}</div>
+    <div class="choices">
+      ${rem.map(p=>`<button class="pwbtn" data-id="${p.id}" type="button">${keySvg(p.color)}<span class="code">${p.code}</span><span class="act">同じにする</span></button>`).join('')}
+      <button class="pwbtn new" data-new="1" type="button"><span class="code">＋ 新しく作る${rem.length>=CFG.slots?'（どれか1つ忘れる）':''}</span><span class="act">作る</span></button>
+    </div>
+    <div class="sh-msg" id="msg"></div>`);
+  s.querySelectorAll('.pwbtn[data-id]').forEach(b=>b.onclick=()=>{
+    SND.tap();a.pw=b.dataset.id;finishReg(a,isReset);
+  });
+  s.querySelector('[data-new]').onclick=()=>{
+    SND.tap();
+    if(remembered().length<CFG.slots){const p=makePw();a.pw=p.id;SND.learn();finishReg(a,isReset,p.id);}
+    else forgetMode(a,isReset);
+  };
+}
+function forgetMode(a,isReset){
+  const s=openSheet(`
+    <div class="sh-head">${ico(a)}<div class="t"><div class="k">${a.name}</div><div class="n">覚えられるのは ${CFG.slots}つまで</div></div></div>
+    <div class="sh-q">どれを忘れる？　下の「あたまの中」から1つ選ぶ。</div>
+    <div class="sh-note">忘れたパスワードのアプリは、次にログインするとき再設定になる。</div>
+    <button class="btn ghost" id="cancel" type="button">やめる</button>`);
+  renderSlots({pick:(id,el)=>{
+    const p=G.pws.find(x=>x.id===id);el.classList.add('fade');SND.forget();
+    setTimeout(()=>{p.forgotten=true;const np=makePw();a.pw=np.id;SND.learn();finishReg(a,isReset,np.id)},520);
+  }});
+  s.querySelector('#cancel').onclick=()=>{renderSlots();showRegister(a,isReset)};
+}
+function finishReg(a,isReset,born){
+  const was=a.installed;a.installed=true;G.lastReg=a;
+  closeSheet();renderSlots({born});renderGrid(was?null:a.id);refreshHud();
+  const p=pwOf(a);
+  toast(born?`「${p.code}」を覚えた`:(isReset?'再設定できた':`${a.name} を入れた`));
+  setTimeout(nextEvent,born?950:650);
+}
+
+function showLogin(a){
+  let tries=0,over=false;
+  G.tasks++;refreshHud();
+  const rem=remembered();
+  const s=openSheet(`
+    <div class="sh-head">${ico(a)}<div class="t"><div class="k">ログイン</div><div class="n">${a.name}</div></div></div>
+    <div class="sh-q">${a.use}。パスワードは？</div>
+    <div class="choices">
+      ${rem.map(p=>`<button class="pwbtn" data-id="${p.id}" type="button">${keySvg(p.color)}<span class="code">${p.code}</span><span class="act">入れる</span></button>`).join('')}
+      <button class="pwbtn forgot" data-forgot="1" type="button"><span class="code">パスワードを忘れた方はこちら</span><span class="act" style="color:#9a3b2d">あとで</span></button>
+    </div>
+    <div class="sh-note">${CFG.tries}回まちがえるとロックされる。ログインできなかったアプリは使えなくなる。</div>
+    <div class="sh-msg" id="msg"></div>`);
+  const msg=s.querySelector('#msg');
+  const stop=()=>{over=true;s.querySelectorAll('button').forEach(x=>x.disabled=true)};
+  s.querySelectorAll('.pwbtn[data-id]').forEach(b=>b.onclick=()=>{
+    if(over)return;
+    if(b.dataset.id===a.pw){
+      const pts=tries?5:10;
+      stop();G.taskOk++;G.loginPts=(G.loginPts||0)+pts;refreshHud();SND.ok();
+      msg.className='sh-msg good';showMsg(msg);msg.textContent=tries?'ログインできた。　+5点（1回まちがえたので半分）':'ログインできた！　+10点';
+      setTimeout(()=>{closeSheet();setTimeout(nextEvent,350)},750);
+    }else{
+      tries++;G.miss++;SND.bad();refreshHud();penalty('間違い +1',b);
+      if(tries>=CFG.tries){stop();setTimeout(()=>failLogin(a,'lock'),500);return}
+      s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');
+      msg.textContent='パスワードが違います（あと1回でロック）';showMsg(msg);
+    }
+  });
+  s.querySelector('[data-forgot]').onclick=()=>{if(over)return;stop();SND.tap();failLogin(a,'forgot')};
+}
+/* ログイン失敗。直すのは後回しになり、後半でパスワードを変えるのに時間がかかる */
+function failLogin(a,kind){
+  if(kind==='lock'){a.locked=true;G.locks++}else{a.unknown=true;G.resets++}
+  refreshHud();SND.bad();renderGrid();
+  const lock=kind==='lock';
+  const s=openSheet(`
+    <div class="sh-head">${ico(a)}<div class="t"><div class="k">ログイン失敗</div><div class="n">${lock?'ロックされた':'パスワードは、あとで再設定'}</div></div></div>
+    <div class="sh-q" style="color:var(--danger)">${a.fail}。</div>
+    <div class="sh-note">${lock?'ロックを外すには本人確認が要る。いまは時間がないので、そのままにした。<b>このアプリは使えない。直すには、本人確認からなので3倍の時間がかかる。</b>':'再設定のメールは、あとで見ることにした。<b>このアプリは使えない。直すには、再設定なので2倍の時間がかかる。</b>'}</div>
+    <button class="btn ghost" id="ok" type="button">次へ</button>`);
+  s.querySelector('#ok').onclick=()=>{SND.tap();closeSheet();setTimeout(nextEvent,350)};
+}
+
+/* ---------- 漏洩のお知らせ ---------- */
+const WD='日月火水木金土';
+const pad=n=>String(n).padStart(2,'0');
+const gameNow=()=>new Date(Date.now()+(G?G.off:0));
+const hm=d=>`${d.getHours()}:${pad(d.getMinutes())}`;
+function tickClock(){$('#clock').textContent=G&&G.onLock?'mobile':hm(gameNow());const lc=$('#lockClock');if(lc)lc.textContent=hm(gameNow())}
+setInterval(tickClock,1000);
+function toLeak(){
+  G.phase='leak';island(null);
+  const days=2+Math.floor(Math.random()*5);G.off=days*86400000;G.days=days;
+  G.onLock=true;const d=gameNow();tickClock();
+  const inst=G.apps.filter(a=>a.installed);
+  const L=wpick(inst,x=>x.w);L.leaked=true;G.leak=L;
+  G.risk=inst.filter(a=>a!==L&&a.pw===L.pw);
+  view.innerHTML=`<div class="wall"></div><div class="lock">
+    <div class="later">${days}日後…</div>
+    <div class="date">${d.getMonth()+1}月${d.getDate()}日 ${WD[d.getDay()]}曜日</div><div class="clock" id="lockClock">${hm(d)}</div>
+    <div style="height:18px"></div>
+    <button class="banner" id="leakN" type="button" style="animation-delay:2.4s;animation-fill-mode:both">
+      ${mailIco()}
+      <div class="bt"><span class="bh"><span>メール</span><span>いま</span></span><b>【お詫び】不正アクセスによる情報流出について</b>${L.name}：お客さまのメールアドレスとパスワードが流出したおそれがあります…</div>
+    </button></div>`;
+  renderSlots();
+  setTimeout(SND.ping,2500);
+  $('#leakN').onclick=()=>{SND.tap();showLeakMail()};
+}
+function showLeakMail(){
+  G.onLock=false;tickClock();
+  const L=G.leak;
+  view.innerHTML=`<div class="full"><div class="bar">${mailIco()}<b>メール</b></div>
+    <div class="body">
+      <div class="mail"><div class="from">差出人：${L.name} 運営事務局</div>
+        <h3>【お詫び】不正アクセスによる情報流出について</h3>
+        平素より${L.name}をご利用いただき、ありがとうございます。<br>
+        当社のサーバーが不正アクセスを受け、お客さまの<b>メールアドレスとパスワード</b>が外部に流出したおそれがあります。<br>
+        ${L.name}のパスワードは当社でリセットしました。<br>
+        <b>同じパスワードをほかのサービスでお使いの場合は、すぐに変更してください。</b>
+      </div>
+      <div class="lesson">
+        ${L.name}のパスワード、ほかのアプリでも使っていなかった？<br>
+        ${CFG.tmode==='attack'?`<b>${CFG.time}秒後</b>に、漏れたパスワードで一斉にログインが試される。その前に試されるアプリもある。それまでに、アプリを開いて変えよう。`
+          :CFG.tmode==='hidden'?`もうすぐ、漏れたパスワードで一斉にログインが試される。いつ来るかは分からない（${CFG.time-5}〜${CFG.time+5}秒後のどこか）。その前に試されるアプリもある。急いで、アプリを開いて変えよう。`
+          :`同じパスワードのアプリは、ログインを試される。<b>${CFG.time}秒</b>のうちに、アプリを開いて変えよう。`}<br>
+        使えなくなっているアプリ（鍵・？の印）も、この時間に直せる。直さないと、使えないままになる。<br>
+        変えるときは、メールのリンクではなく、アプリから。
+      </div>
+      <button class="btn danger" id="go" type="button">対応をはじめる</button>
+    </div></div>`;
+  $('#go').onclick=()=>{SND.alarm();startP2()};
+}
+
+/* ---------- 後半 ---------- */
+let raf=0;
+function stopLoop(){cancelAnimationFrame(raf);raf=0}
+function hudP2(){island(`<span id="left"></span><span class="tb" id="tbar"></span>`,'red')}
+function startP2(){
+  G.phase='p2';G.t=0;G.busy=null;G.lockUntil=0;G.ended=false;
+  view.innerHTML=homeHTML();hudP2();
+  // 終わるボタン
+  const end=document.createElement('button');end.className='btn ghost';end.type='button';end.id='endBtn';end.textContent='これで大丈夫（終える）';
+  end.style.cssText='position:absolute;left:14px;right:14px;bottom:14px;z-index:4';end.onclick=()=>finishP2(true);
+  view.querySelector('.home').appendChild(end);
+  renderGrid();renderSlots();
+  // 攻撃の時刻
+  G.T=CFG.tmode==='hidden'?CFG.time-5+Math.random()*10:CFG.time;
+  const T=G.T, r=shuffle(G.risk), n=r.length;
+  const m=n<=1&&CFG.mid<1?0:Math.floor(n*CFG.mid);
+  G.attacks=r.map((a,i)=>({app:a,at:i<m?(m===1?T*0.45:5+(T-11)*(i/(m-1))+(Math.random()-.5)*1.2):Infinity,done:false}));
+  // 偽メール
+  G.phishes=[];
+  const ph=[T*0.22,T*0.6].slice(0,CFG.phish);
+  ph.forEach(at=>{const tg=rnd(G.apps.filter(a=>a.installed&&!a.leaked&&a.star>=2));G.phishes.push({at,app:tg,done:false})});
+  G.last=performance.now();
+  raf=requestAnimationFrame(loop);
+}
+function loop(now){
+  const dt=Math.min(.1,(now-G.last)/1000);G.last=now;G.t+=dt;
+  const T=G.T,left=Math.max(0,T-G.t),hid=CFG.tmode==='hidden';
+  const l=$('#left');
+  if(l)l.textContent=hid?'不正ログインに警戒中…':CFG.tmode==='attack'?`一斉ログインまで ${Math.ceil(left)}秒`:`のこり ${Math.ceil(left)}秒`;
+  const isl=$('#island');if(isl)isl.classList.toggle('blink',!hid&&left>0&&left<=5);
+  const sec=Math.ceil(left);if(!hid&&left>0&&left<=5&&sec!==G.lastSec){G.lastSec=sec;tone(1000,.05,'square',.05)}
+  const tb=$('#tbar');if(tb)tb.style.width=hid?'0%':(left/T*100)+'%';
+  // 変更中
+  if(G.busy){const b=G.busy;b.el+=dt;updateChange(b);if(b.el>=b.dur)completeChange(b)}
+  for(const at of G.attacks){if(!at.done&&G.t>=at.at){at.done=true;attack(at.app)}}
+  for(const p of G.phishes){if(!p.done&&G.t>=p.at){p.done=true;phish(p.app)}}
+  if(G.t>=T&&!G.busy){finishP2(false);return}
+  raf=requestAnimationFrame(loop);
+}
+function banner(html,cls,onTap,life=3600){
+  const box=$('#banners');if(!box)return;
+  const b=document.createElement('button');b.type='button';b.className='banner '+(cls||'');b.innerHTML=html;
+  b.onclick=()=>{if(onTap)onTap();dismiss()};
+  const dismiss=()=>{b.classList.add('out');setTimeout(()=>b.remove(),300)};
+  box.prepend(b);setTimeout(dismiss,life);
+  while(box.children.length>3)box.lastChild.remove();
+}
+function attack(a){
+  if(a.changed){
+    SND.ok();banner(`${ico(a)}<div class="bt"><span class="bh"><span>${a.name}</span><span>いま</span></span><b>不審なログインを防ぎました</b>パスワード変更済みのため、ログインできませんでした。</div>`,'green');
+    return;
+  }
+  a.hijacked=true;
+  if(G.busy&&G.busy.app===a){closeFull();G.busy=null}
+  SND.bad();
+  banner(`${ico(a)}<div class="bt"><span class="bh"><span>${a.name}</span><span>いま</span></span><b>新しい端末からログインがありました</b>心当たりがない場合は…（もう遅い）</div>`,'red');
+  renderGrid();
+}
+function phish(a){
+  SND.ping();
+  banner(`${mailIco()}<div class="bt"><span class="bh"><span>メール</span><span>いま</span></span><b>【重要】${a.name}：至急パスワードを再設定してください</b>こちらのリンクから、すぐに変更できます ▶</div>`,'',()=>openFake(a),4200);
+}
+let fullEl=null;
+function closeFull(){if(fullEl){fullEl.remove();fullEl=null}}
+function openFake(a){
+  if(G.phase!=='p2'||G.ended||G.t>=G.T)return;
+  if(G.busy){G.busy=null}
+  closeFull();SND.bad();
+  fullEl=document.createElement('div');fullEl.className='full fake';
+  fullEl.innerHTML=`<div class="urlbar">https://${a.id}-login.secure-check.example</div>
+    <div class="body"><div class="warn"><b>これは偽のメールでした</b>
+    ${a.name}をまねたページ。ここにパスワードを入れていたら危なかった。<br>
+    パスワードを変えるときは、メールのリンクではなく、アプリを直接開こう。</div>
+    <div class="sh-note" id="fk">3秒、足止め…</div></div>`;
+  view.appendChild(fullEl);
+  const t0=G.t;
+  const tick=()=>{if(!fullEl||G.phase!=='p2')return;const r=3-(G.t-t0);
+    if(r<=0){closeFull();renderGrid();return}
+    const f=fullEl.querySelector('#fk');if(f)f.textContent=`${Math.ceil(r)}秒、足止め…`;requestAnimationFrame(tick)};
+  tick();
+}
+function p2Tap(a,el){
+  if(fullEl||G.ended||G.t>=G.T)return;
+  if(a.leaked){toast('ここは運営がリセット済み');return}
+  if(a.hijacked){SND.bad();toast('もう乗っ取られている');return}
+  if(a.changed){toast('変更済み');return}
+  SND.tap();openApp(a);
+}
+function openApp(a){
+  closeFull();
+  const lock=a.locked, forgot=!lock&&(pwOf(a).forgotten||a.unknown);
+  const mult=lock?3:forgot?2:1;
+  fullEl=document.createElement('div');fullEl.className='full';
+  const steps=lock?['本人確認の書類を送る','確認を待つ','ロックを外す','新しいパスワードを入れる']:forgot?['パスワードを忘れた方はこちら','確認メールを待つ','新しいパスワードを入れる']:['いまのパスワードを入れる','新しいパスワードを入れる','確認コードを入れる'];
+  fullEl.innerHTML=`<div class="bar">${ico(a)}<b>${a.name}</b><button type="button" id="back">戻る</button></div>
+    <div class="body">
+      <div class="sh-q">設定 ＞ パスワードの変更</div>
+      ${lock?'<div class="sh-note">ロックされたまま、使えない。本人確認からなので、3倍の時間がかかる。</div>':forgot?'<div class="sh-note">パスワードが分からず、使えない。再設定なので、2倍の時間がかかる。</div>':''}
+      <div class="steps">${steps.map((s,i)=>`<div class="step" data-i="${i}"><i>${i+1}</i>${s}</div>`).join('')}</div>
+      <div class="prog"><div id="cp"></div></div>
+      <button class="btn" id="chg" type="button">パスワードを変更する</button>
+    </div>`;
+  view.appendChild(fullEl);
+  fullEl.querySelector('#back').onclick=()=>{G.busy=null;closeFull();renderGrid()};
+  fullEl.querySelector('#chg').onclick=e=>{
+    e.target.disabled=true;e.target.textContent='変更しています…';SND.tap();
+    G.busy={app:a,el:0,dur:CFG.change*mult,steps:steps.length};updateChange(G.busy);
+  };
+}
+function updateChange(b){
+  if(!fullEl)return;const p=Math.min(1,b.el/b.dur);
+  const cp=fullEl.querySelector('#cp');if(cp)cp.style.width=(p*100)+'%';
+  const cur=Math.min(b.steps-1,Math.floor(p*b.steps));
+  fullEl.querySelectorAll('.step').forEach((s,i)=>{s.className='step'+(i<cur?' done':i===cur?' now':'')});
+}
+function completeChange(b){
+  const a=b.app;G.busy=null;a.changed=true;
+  // 新しいパスワードはメモした扱い（あたまの中は使わない）
+  if(fullEl){fullEl.querySelectorAll('.step').forEach(s=>s.className='step done');}
+  SND.ok();setTimeout(()=>{closeFull();renderGrid();toast(`${a.name} を変更した`)},350);
+}
+function finishP2(early){
+  if(G.ended)return;G.ended=true;stopLoop();closeFull();
+  if(G.busy){G.busy=null}
+  document.querySelectorAll('#banners .banner').forEach(b=>b.remove());
+  renderGrid();const eb=$('#endBtn');if(eb)eb.hidden=true;
+  judge();
+}
+/* 一斉ログイン：漏れたパスワードで、全部のアプリを1つずつ試す（答え合わせ） */
+function judge(){
+  const me=G;const home=view.querySelector('.home');if(!home)return showResult();
+  island('一斉ログイン','red');
+  const dim=document.createElement('div');dim.className='judge-dim';home.appendChild(dim);
+  const panel=document.createElement('div');panel.className='judge-panel';
+  panel.innerHTML=`<div class="jt">一斉ログイン</div><div class="js">漏れたパスワード <span class="code">${pwOf(G.leak).code}</span> で、全部のアプリを試している…</div><div class="jc" id="jc"></div>`;
+  home.appendChild(panel);
+  SND.alarm();
+  const list=G.apps.filter(a=>a.installed);
+  let i=0,stop=0,hit=0;
+  const leakPw=G.leak.pw, kc=pwOf(G.leak).color;
+  const step=()=>{
+    if(G!==me||G.phase!=='p2')return;
+    if(i>=list.length){return done()}
+    const a=list[i++];
+    const btn=view.querySelector(`.app[data-id="${a.id}"]`);
+    const go=(kind,label)=>{
+      if(btn){btn.classList.add('testing');const st=document.createElement('span');st.className='stamp '+kind;st.textContent=label;btn.appendChild(st);if(kind==='miss')btn.classList.add('missed');}
+    };
+    if(a.leaked){go('leak','流出元');setTimeout(step,350);return}
+    if(a.hijacked){go('bad','乗っ取られた');hit++;setTimeout(step,350);return}
+    // 鍵が飛んでいく
+    if(btn){
+      const k=document.createElement('div');k.className='flykey';k.innerHTML=keySvg(kc);home.appendChild(k);
+      const hr=home.getBoundingClientRect(),ir=btn.querySelector('.ico').getBoundingClientRect();
+      k.style.left=(hr.width/2-17)+'px';k.style.top=(hr.height-150)+'px';
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{k.style.left=(ir.left-hr.left+ir.width/2-17)+'px';k.style.top=(ir.top-hr.top+ir.height/2-9)+'px'}));
+      setTimeout(()=>k.remove(),420);
+    }
+    setTimeout(()=>{
+      if(G!==me)return;
+      if(a.pw===leakPw&&!a.changed){a.hijacked=true;hit++;go('bad','乗っ取られた');SND.bad();
+        btn&&btn.classList.add('hijacked');}
+      else if(a.pw===leakPw){stop++;go('ok','防いだ');SND.ok();}
+      else{go('miss','合わない');tone(300,.06,'triangle',.05);}
+      G.attacks.forEach(at=>{if(at.app===a)at.done=true});
+      setTimeout(step,a.pw===leakPw?500:260);
+    },380);
+  };
+  const done=()=>{
+    const dead=G.apps.filter(a=>a.installed&&unusable(a)&&!a.hijacked).length;
+    const jc=panel.querySelector('#jc');
+    panel.querySelector('.js').textContent='一斉ログインが終わった。';
+    jc.innerHTML=`<div class="jsum"><span class="ok">防いだ ${stop}</span><span class="bad">乗っ取られた ${hit}</span>${dead?`<span class="dead">使えないまま ${dead}</span>`:''}</div>
+      <button class="btn" id="toRes" type="button">結果を見る</button>`;
+    island(hit?`乗っ取られた ${hit}`:'被害なし',hit?'red':'');
+    SND.done();
+    jc.querySelector('#toRes').onclick=()=>{SND.tap();showResult()};
+  };
+  setTimeout(step,900);
+}
+
+/* ---------- 結果 ---------- */
+function showResult(){
+  G.phase='result';$('#head').hidden=true;island(null);
+  const inst=G.apps.filter(a=>a.installed);
+  const hij=inst.filter(a=>a.hijacked);
+  const total=inst.reduce((s,a)=>s+VAL[a.star],0);
+  const dead=inst.filter(unusable);
+  const lost=hij.reduce((s,a)=>s+VAL[a.star],0)+VAL[G.leak.star]+dead.filter(a=>!a.hijacked).reduce((s,a)=>s+VAL[a.star]/2,0);
+  const keep=total-lost;
+  const tedious=G.tasks-G.taskOk;
+  const usedPw=new Set(inst.map(a=>a.pw));
+  let ttl;
+  if(usedPw.size===1) ttl='合鍵1本の人';
+  else if(dead.filter(a=>!a.hijacked).length>=3) ttl='使えないアプリだらけ';
+  else if(!hij.length&&!tedious) ttl='鍵の名人';
+  else if(!hij.length&&!G.risk.length) ttl='分けておいて正解';
+  else if(!hij.length) ttl='間に合った人';
+  else if(hij.some(a=>a.star===3)) ttl='大事な扉を開けられた';
+  else if(G.locks+G.resets>=3) ttl='ログイン失敗の常連';
+  else ttl='ふつうのスマホ持ち';
+  const fixed=a=>a.changed&&(a.locked||a.unknown||pwOf(a).forgotten)&&!G.risk.includes(a);
+  const status=a=>a.leaked?['leak','流出元']:a.hijacked?['bad','乗っ取られた']:unusable(a)?['dead','使えないまま']:fixed(a)?['ok','直した']:a.changed&&G.risk.includes(a)?['ok','守った']:a.changed?['','変えた（無関係）']:G.risk.includes(a)?['ok','守った']:['','無事'];
+  // パスワードごとにまとめる
+  const groups=[...usedPw].map(id=>({p:G.pws.find(x=>x.id===id),apps:inst.filter(a=>a.pw===id)}))
+    .sort((x,y)=>(y.apps.includes(G.leak)?1:0)-(x.apps.includes(G.leak)?1:0));
+  const score=keep+(G.loginPts||0);
+  view.innerHTML=`<div class="result">
+    <div class="res-top"><div class="lbl">結果</div><div class="ttl">${ttl}</div>
+      <div class="big">乗っ取られた ${hij.length}件 ／ 使えないまま ${dead.filter(a=>!a.hijacked).length}件<br><span style="font-size:13px;color:var(--sub)">流出元 ${G.leak.name}</span></div></div>
+    <div class="share"><a class="btn x" id="post" target="_blank" rel="noopener">Xにポスト</a><button class="btn img" id="shareImg" type="button">画像で共有</button></div>
+    <div class="res-stats">
+      <div><b>${score}</b><span>点</span></div>
+      <div><b>${keep}<small style="font-size:12px;color:var(--sub)">/${total}</small></b><span>守れた大事さ</span></div>
+      <div><b>${G.taskOk}<small style="font-size:12px;color:var(--sub)">/${G.tasks}</small></b><span>ログイン成功</span></div>
+      <div><b>${G.miss}・${G.locks}</b><span>間違い・ロック</span></div>
+    </div>
+    ${groups.map(g=>{const leakG=g.apps.includes(G.leak);return `<div class="grp"><div class="grp-h">${keySvg(g.p.color)}<span class="code" style="${g.p.forgotten?'opacity:.5;text-decoration:line-through':''}">${g.p.code}</span>
+      <span class="tag ${leakG?'bad':''}">${leakG?'漏れた・':''}${g.p.forgotten?'忘れた・':''}${g.apps.length}個</span></div>
+      ${g.apps.map(a=>{const [c,t]=status(a);return `<div class="row">${ico(a)}<span class="nm">${a.name} ${stars(a.star)}</span><span class="st ${c}">${t}</span></div>`}).join('')}</div>`}).join('')}
+    <div class="lesson">流出は、小さなサービスから起きることが多い。大事なアプリほど、ほかと違うパスワードにしておくと被害が広がりにくい。<br>ただ、覚えきれないほどパスワードを増やすと、ログインできずに使えないアプリが増える。</div>
+    <div class="res-btns"><button class="btn" id="again" type="button">もう一度</button><button class="btn ghost" id="toT" type="button">タイトルへ</button></div>
+  </div>`;
+  renderSlots();SND.done();
+  $('#again').onclick=()=>{SND.tap();newGame();startP1()};
+  $('#toT').onclick=()=>{SND.tap();toTitle()};
+  const deadN=dead.filter(a=>!a.hijacked).length;
+  const text=`【${ttl}】乗っ取られた ${hij.length}件・使えないまま ${deadN}件・${score}点\n#パスワード_同じでいっか`;
+  $('#post').href='https://x.com/intent/post?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(SITE);
+  $('#post').onclick=()=>SND.tap();
+  const R={ttl,score,hij:hij.length,dead:deadN,stop:inst.filter(a=>G.risk.includes(a)&&a.changed&&!a.hijacked).length,apps:inst.map(a=>({a,st:status(a)}))};
+  $('#shareImg').onclick=async e=>{
+    SND.tap();const b=e.currentTarget;b.disabled=true;const old=b.textContent;b.textContent='作っています…';
+    try{await shareCard(R,text)}catch(err){toast('画像を作れなかった')}
+    b.disabled=false;b.textContent=old;
+  };
+}
+const SITE='https://password-same.pages.dev/';
+/* 結果カード（1200×630） */
+function svgImg(svg){return new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" '))})}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+async function shareCard(R,text){
+  try{await Promise.all(['900 64px "M PLUS 1"','700 28px "M PLUS 1"','500 22px "M PLUS 1"'].map(f=>document.fonts.load(f)))}catch(e){}
+  const W=1200,H=630,cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');
+  const F='"M PLUS 1","Hiragino Sans","Noto Sans JP",sans-serif';
+  c.fillStyle='#F1F3F8';c.fillRect(0,0,W,H);
+  // 左：屋号・称号・点
+  c.fillStyle='#69718A';c.font=`700 30px ${F}`;c.fillText('パスワード、同じでいっか。',64,96);
+  c.fillStyle='#1B1F2A';let fs=72;c.font=`900 ${fs}px ${F}`;while(c.measureText(R.ttl).width>560&&fs>40){fs-=4;c.font=`900 ${fs}px ${F}`}
+  c.fillText(R.ttl,64,200);
+  c.font=`900 120px ${F}`;c.fillStyle='#2F5BEA';c.fillText(String(R.score),64,350);
+  const sw=c.measureText(String(R.score)).width;c.font=`700 36px ${F}`;c.fillText('点',72+sw,350);
+  const pill=(x,y,txt,bg,fg)=>{c.font=`900 28px ${F}`;const w=c.measureText(txt).width+36;rr(c,x,y,w,52,14);c.fillStyle=bg;c.fill();c.fillStyle=fg;c.fillText(txt,x+18,y+36);return w};
+  let px=64;px+=pill(px,400,`乗っ取られた ${R.hij}`,'#FDE7E7','#E23B3B')+12;pill(px,400,`使えないまま ${R.dead}`,'#FFF1D6','#9A6200');
+  c.fillStyle='#69718A';c.font=`700 24px ${F}`;c.fillText('password-same.pages.dev　#パスワード_同じでいっか',64,560);
+  // 右：アプリと結果
+  const cols=4,size=92,gx=134,gy=150,ox=650,oy=110;
+  const colors={bad:'#E23B3B',ok:'#1F9D63',leak:'#33363F',dead:'#9A6200','':'#69718A'};
+  for(let i=0;i<R.apps.length&&i<12;i++){
+    const {a,st}=R.apps[i];const x=ox+(i%cols)*gx,y=oy+Math.floor(i/cols)*gy;
+    rr(c,x,y,size,size,26);c.fillStyle=a.c;c.fill();
+    if(st[0]==='bad'){c.save();rr(c,x,y,size,size,26);c.clip();c.fillStyle='rgba(30,30,40,.55)';c.fillRect(x,y,size,size);c.restore()}
+    const im=await svgImg(ICONS[a.id]);if(im)c.drawImage(im,x+24,y+24,48,48);
+    c.font=`900 17px ${F}`;const t=st[1];const tw=c.measureText(t).width;
+    c.fillStyle=colors[st[0]]||'#69718A';c.fillText(t,x+size/2-tw/2,y+size+30);
+  }
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  const file=new File([blob],'password-same-result.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],text:text+'\n'+SITE});return}catch(e){if(e&&e.name==='AbortError')return}
+  }
+  const u=URL.createObjectURL(blob);const l=document.createElement('a');l.href=u;l.download='password-same-result.png';document.body.appendChild(l);l.click();l.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),2000);toast('画像を保存した');
+}
+
+toTitle();
+})();
+</script>
+</body>
+</html>
